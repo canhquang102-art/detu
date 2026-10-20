@@ -59,3 +59,9 @@ skills:
     multiplier: 10.0
     range: 12
     radius: 7
+
+upgrade:
+  hp-base-cost: 100
+  hp-growth: 10
+  atk-base-cost: 500
+  atk-growth: 50
