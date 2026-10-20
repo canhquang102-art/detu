@@ -78,6 +78,7 @@ public final class DiscipleManager {
                 UUID id = UUID.fromString(key);
                 PlayerData pd = new PlayerData();
                 pd.sm = sec.getLong(key + ".sm", 0);
+                pd.potential = sec.getLong(key + ".potential", 0);
                 pd.hpLevel = sec.getInt(key + ".hp-level", 0);
                 pd.atkLevel = sec.getInt(key + ".atk-level", 0);
                 Mode m = Mode.parse(sec.getString(key + ".mode", "ditheo"));
@@ -99,6 +100,7 @@ public final class DiscipleManager {
             String k = "players." + e.getKey();
             PlayerData pd = e.getValue();
             y.set(k + ".sm", pd.sm);
+            y.set(k + ".potential", pd.potential);
             y.set(k + ".hp-level", pd.hpLevel);
             y.set(k + ".atk-level", pd.atkLevel);
             y.set(k + ".mode", pd.mode.name().toLowerCase());
@@ -306,13 +308,12 @@ public final class DiscipleManager {
         return cfg().getLong("skills.skill" + (idx + 2) + ".unlock", 1L);
     }
 
-    public long totalPoints(PlayerData pd) {
-        long per = Math.max(1L, cfg().getLong("sm.per-potential-point", 1000));
-        return pd.sm / per;
-    }
-
-    public long freePoints(PlayerData pd) {
-        return Math.max(0L, totalPoints(pd) - pd.hpLevel - pd.atkLevel);
+    public long upgradeCost(boolean hp, PlayerData pd) {
+        String k = hp ? "upgrade.hp" : "upgrade.atk";
+        long base = cfg().getLong(k + "-base-cost", hp ? 100 : 500);
+        long growth = cfg().getLong(k + "-growth", hp ? 10 : 50);
+        int level = hp ? pd.hpLevel : pd.atkLevel;
+        return base + growth * level;
     }
 
     public long maxHp(PlayerData pd) {
@@ -338,6 +339,7 @@ public final class DiscipleManager {
         PlayerData pd = data(owner.getUniqueId());
         long before = pd.sm;
         pd.sm += amount;
+        pd.potential += amount;
         ensureMoves(pd, owner);
         if (notify) {
             owner.sendActionBar(Util.color("&b+" + Util.fmt(amount) + " SM &7(" + Util.fmt(pd.sm) + ")"));
@@ -346,15 +348,22 @@ public final class DiscipleManager {
 
     public boolean upgrade(Player p, boolean hp, int amount) {
         PlayerData pd = data(p.getUniqueId());
-        long free = freePoints(pd);
-        int n = (int) Math.min((long) amount, free);
-        if (n <= 0) {
-            msg(p, "&c[Đệ tử] Không còn điểm tiềm năng. Hãy tăng thêm SM.");
+        int done = 0;
+        long spent = 0;
+        for (int i = 0; i < amount; i++) {
+            long cost = upgradeCost(hp, pd);
+            if (pd.potential < cost) break;
+            pd.potential -= cost;
+            spent += cost;
+            if (hp) pd.hpLevel++;
+            else pd.atkLevel++;
+            done++;
+        }
+        if (done == 0) {
+            msg(p, "&c[Đệ tử] Không đủ tiềm năng. Cần &e" + Util.fmt(upgradeCost(hp, pd)) + "&c, đang có &e" + Util.fmt(pd.potential) + "&c.");
             return false;
         }
-        if (hp) pd.hpLevel += n;
-        else pd.atkLevel += n;
-        msg(p, "&a[Đệ tử] Đã cộng &e" + n + " &acấp " + (hp ? "HP gốc" : "sức đánh gốc") + ".");
+        msg(p, "&a[Đệ tử] Đã nâng &e" + done + " &acấp " + (hp ? "HP gốc" : "sức đánh gốc") + " (tốn &e" + Util.fmt(spent) + " &atiềm năng).");
         Disciple d = active.get(p.getUniqueId());
         if (d != null && d.body != null) refresh(d, p, pd);
         return true;

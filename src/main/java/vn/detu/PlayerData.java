@@ -2,6 +2,7 @@ package vn.detu;
 
 public final class PlayerData {
     public long sm = 0;
+    public long potential = 0; // tiem nang: dung de nang HP / suc danh
     public int hpLevel = 0;
     public int atkLevel = 0;
     public Mode mode = Mode.FOLLOW;

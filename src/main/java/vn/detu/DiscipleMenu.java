@@ -42,7 +42,7 @@ public final class DiscipleMenu implements InventoryHolder {
         stats.add("&7Sức mạnh hiện tại: &e" + Util.fmt(pd.sm) + " SM");
         stats.add("&7HP gốc: &aCấp " + pd.hpLevel + " &7[" + m.maxHp(pd) + " HP]");
         stats.add("&7Sức đánh gốc: &aCấp " + pd.atkLevel + " &7[" + String.format("%.1f", m.damage(pd)) + " SĐ]");
-        stats.add("&7Tiềm năng còn lại: &b" + m.freePoints(pd));
+        stats.add("&7Tiềm năng hiện có: &b" + Util.fmt(pd.potential));
         inv.setItem(SLOT_STATS, item(Material.BOOK, "&6Chỉ số đệ tử", stats, false));
 
         List<String> sk = new ArrayList<>();
@@ -57,10 +57,14 @@ public final class DiscipleMenu implements InventoryHolder {
         sk.add("&7Sở trường Xayda: &fAntomic / Kaioken / Biến Khỉ");
         inv.setItem(SLOT_SKILLS, item(Material.NETHER_STAR, "&dKỹ năng đệ tử", sk, false));
 
-        inv.setItem(SLOT_HP, item(Material.GOLDEN_APPLE, "&cCộng HP gốc",
-                List.of("&7Điểm tiềm năng còn: &b" + m.freePoints(pd), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
-        inv.setItem(SLOT_ATK, item(Material.DIAMOND_SWORD, "&6Cộng sức đánh gốc",
-                List.of("&7Điểm tiềm năng còn: &b" + m.freePoints(pd), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
+        inv.setItem(SLOT_HP, item(Material.GOLDEN_APPLE, "&cNâng HP gốc",
+                List.of("&7Cấp hiện tại: &a" + pd.hpLevel,
+                        "&7Giá cấp tiếp: &e" + Util.fmt(m.upgradeCost(true, pd)) + " &7tiềm năng",
+                        "&7Đang có: &b" + Util.fmt(pd.potential), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
+        inv.setItem(SLOT_ATK, item(Material.DIAMOND_SWORD, "&6Nâng sức đánh gốc",
+                List.of("&7Cấp hiện tại: &a" + pd.atkLevel,
+                        "&7Giá cấp tiếp: &e" + Util.fmt(m.upgradeCost(false, pd)) + " &7tiềm năng",
+                        "&7Đang có: &b" + Util.fmt(pd.potential), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
 
         boolean out = m.isActive(p.getUniqueId());
         inv.setItem(SLOT_CAPSULE, item(Material.BARREL, out ? "&cCất đệ tử vào Capsule" : "&aGọi đệ tử ra",
