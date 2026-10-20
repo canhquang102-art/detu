@@ -1,0 +1,67 @@
+# ===== SKIN GOKU =====
+# Cach 1 (khuyen dung): dan gia tri texture (base64) lay tu mineskin.org
+# Cach 2: dien ten tai khoan co skin do vao "name" (co the khong hien neu server o offline-mode)
+skin:
+  texture-value: ""
+  texture-signature: ""
+  name: ""
+
+display-name: "&eĐệ tử của &6%owner%"
+
+# Toc he: chieu so truong ra nhieu hon (trong luong, 1.0 = binh thuong)
+race:
+  specialty-weight: 3.0
+
+follow:
+  teleport-distance: 24
+  speed: 0.28
+  run-speed: 0.40
+  stop-distance: 3.0
+
+combat:
+  attack-range: 2.5
+  attack-cooldown-ms: 800
+  search-radius: 14
+  protect-radius: 6
+  base-damage: 2.0       # SD goc cap 0 = 2 (theo anh)
+  damage-per-level: 1.0  # moi cap +1 SD goc (theo anh: cap 1 = 3 SD, cap 4 = 6 SD)
+  sm-per-bonus-damage: 1000000
+
+sm:
+  # Theo anh: moi lan de tu danh nhan SMTN = 15 x SD goc (30 / 45 / 90 voi SD goc 2 / 3 / 6, da gom x2 Buff)
+  per-hit-per-sd: 7.5
+  buff: 2.0
+  per-kill-base: 200
+  per-mob-hp: 20.0
+  owner-kill-share: 0.5
+  sm-per-bonus-hp: 100000
+
+# Ngưỡng mở skill theo ảnh (150 triệu / 1,5 tỷ / 10 tỷ SM). Mỗi ô random 1 chiêu lúc mở khóa.
+# Muốn thử nhanh thì hạ số xuống hoặc dùng /detu addsm <tên> <số>
+skills:
+  skill2:
+    unlock: 150000000
+    cooldown: 8
+    multiplier: 3.0
+    range: 10
+    radius: 0
+  skill3:
+    unlock: 1500000000
+    cooldown: 15
+    multiplier: 5.0
+    range: 10
+    radius: 4
+  skill4:
+    unlock: 10000000000
+    cooldown: 30
+    multiplier: 10.0
+    range: 12
+    radius: 7
+
+# Nang HP / suc danh goc bang TIEM NANG (tiem nang cong them moi khi de tu danh / giet quai, bang luong SM nhan duoc)
+# Gia moi cap = base + growth x cap hien tai
+upgrade:
+  hp-base-cost: 100
+  hp-growth: 10
+  atk-base-cost: 500
+  atk-growth: 50
