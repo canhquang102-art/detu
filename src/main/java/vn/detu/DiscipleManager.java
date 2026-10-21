@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -16,6 +17,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
@@ -52,9 +54,11 @@ public final class DiscipleManager {
     private File file;
     private BukkitTask task;
     private int tickCount = 0;
+    private final NamespacedKey bodyKey;
 
     public DiscipleManager(DeTuPlugin plugin) {
         this.plugin = plugin;
+        this.bodyKey = new NamespacedKey(plugin, "body_owner");
     }
 
     private FileConfiguration cfg() {
@@ -159,14 +163,55 @@ public final class DiscipleManager {
     }
 
     public boolean summon(Player p) {
+        return summon(p, false);
+    }
+
+    public boolean summon(Player p, boolean silent) {
         if (active.containsKey(p.getUniqueId())) return false;
+        sweep(p.getUniqueId()); // xoa moi de tu bi bo lai cua nguoi nay
         PlayerData pd = data(p.getUniqueId());
         Disciple d = new Disciple(p.getUniqueId());
         spawnBody(d, p);
         active.put(p.getUniqueId(), d);
         pd.summoned = true;
-        msg(p, "&a[Đệ tử] &fSư phụ ơi, con đây nè!");
+        if (!silent) msg(p, "&a[Đệ tử] &fSư phụ ơi, con đây nè!");
         return true;
+    }
+
+    // ------------------------------------------------------------ chet / doi the gioi / don rac
+
+    public void onDeath(Player p) {
+        Disciple d = active.remove(p.getUniqueId());
+        if (d != null) removeBody(d); // giu nguyen co "summoned" de hoi sinh xong goi lai
+    }
+
+    public void onRespawn(Player p) {
+        if (!data(p.getUniqueId()).summoned) return;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline() && !p.isDead() && data(p.getUniqueId()).summoned) summon(p, true);
+        }, 20L);
+    }
+
+    public void onWorldChange(Player p) {
+        Disciple d = active.remove(p.getUniqueId());
+        if (d == null) return;
+        removeBody(d);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline() && !p.isDead() && data(p.getUniqueId()).summoned) summon(p, true);
+        }, 10L);
+    }
+
+    /** Xoa cac Mannequin do plugin tao ma khong con duoc theo doi. onlyOwner = null thi don tat ca. */
+    public void sweep(UUID onlyOwner) {
+        for (World w : Bukkit.getWorlds()) {
+            for (Mannequin mq : w.getEntitiesByClass(Mannequin.class)) {
+                String tag = mq.getPersistentDataContainer().get(bodyKey, PersistentDataType.STRING);
+                if (tag == null) continue;
+                if (onlyOwner != null && !tag.equals(onlyOwner.toString())) continue;
+                if (bodyToOwner.containsKey(mq.getUniqueId())) continue;
+                mq.remove();
+            }
+        }
     }
 
     public boolean dismiss(Player p) {
@@ -196,6 +241,7 @@ public final class DiscipleManager {
         m.setImmovable(true);
         m.setCustomNameVisible(true);
         applySkin(m);
+        m.getPersistentDataContainer().set(bodyKey, PersistentDataType.STRING, owner.getUniqueId().toString());
         d.body = m;
         bodyToOwner.put(m.getUniqueId(), owner.getUniqueId());
         refresh(d, owner, data(owner.getUniqueId()));
@@ -204,7 +250,7 @@ public final class DiscipleManager {
     private void removeBody(Disciple d) {
         if (d.body != null) {
             bodyToOwner.remove(d.body.getUniqueId());
-            if (d.body.isValid()) d.body.remove();
+            d.body.remove();
             d.body = null;
         }
     }
@@ -405,12 +451,14 @@ public final class DiscipleManager {
                 removeBody(d);
                 continue;
             }
+            if (owner.isDead()) continue;
             if (d.body == null || !d.body.isValid()) {
                 removeBody(d);
                 spawnBody(d, owner);
             }
             tickDisciple(d, owner);
         }
+        if (tickCount % 200 == 0) sweep(null);
         if (tickCount % 6000 == 0) saveData();
     }
 
@@ -471,7 +519,12 @@ public final class DiscipleManager {
         World w = cur.getWorld();
         double tp = cfg().getDouble("follow.teleport-distance", 24);
 
-        if (w != owner.getWorld() || cur.distanceSquared(owner.getLocation()) > tp * tp) {
+        if (w != owner.getWorld()) {
+            removeBody(d);
+            spawnBody(d, owner);
+            return;
+        }
+        if (cur.distanceSquared(owner.getLocation()) > tp * tp) {
             b.teleport(behind(owner));
             return;
         }
