@@ -34,8 +34,6 @@ sm:
   per-kill-base: 200
   per-mob-hp: 20.0
   owner-kill-share: 0.5
-  # CHUA RO cong thuc diem tiem nang cua server goc (xem giai thich), dat tam: 1 diem / moi 1000 SM
-  per-potential-point: 1000
   sm-per-bonus-hp: 100000
 
 # Ngưỡng mở skill theo ảnh (150 triệu / 1,5 tỷ / 10 tỷ SM). Mỗi ô random 1 chiêu lúc mở khóa.
@@ -60,8 +58,28 @@ skills:
     range: 12
     radius: 7
 
+# Nang HP / suc danh goc bang TIEM NANG (tiem nang cong them moi khi de tu danh / giet quai, bang luong SM nhan duoc)
+# Gia moi cap = base + growth x cap hien tai
 upgrade:
   hp-base-cost: 100
   hp-growth: 10
   atk-base-cost: 500
   atk-growth: 50
+
+# Shop ban de tu: phai co quyen "detu.shop" (cap cho rank Bach Kim trong plugin rank cua ban)
+shop:
+  require-purchase: true
+  permission: "detu.shop"
+  price: 1000000
+  need-rank-message: "&c[Shop] Bạn cần đạt rank Bạch Kim để mở shop đệ tử."
+
+# Hop the: dam cua su phu cong them dung bang suc danh cua de tu (add) hoac thay bang (set)
+fusion:
+  damage-mode: add
+  affect-players: false
+
+# De tu phu danh khi su phu danh nguoi choi khac (chi o che do TAN CONG / BAO VE)
+pvp:
+  assist: true
+  assist-seconds: 8       # sau bay nhieu giay su phu khong danh nua thi de tu thoi
+  damage-multiplier: 1.0  # nhan sat thuong cua de tu len nguoi choi
