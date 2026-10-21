@@ -1,0 +1,23 @@
+name: DeTu
+version: 1.0.0
+main: vn.detu.DeTuPlugin
+api-version: '26.1'
+description: He thong de tu (skin Goku, SM, ky nang, menu dieu khien, shop)
+softdepend: [Vault]
+commands:
+  detu:
+    description: Menu va lenh de tu
+    aliases: [dt]
+  ditheo:
+    description: De tu di theo
+  baove:
+    description: De tu bao ve
+  tancong:
+    description: De tu tan cong
+permissions:
+  detu.use:
+    default: true
+  detu.admin:
+    default: op
+  detu.shop:
+    default: false
