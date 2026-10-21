@@ -7,6 +7,7 @@ public final class PlayerData {
     public int atkLevel = 0;
     public Mode mode = Mode.FOLLOW;
     public boolean summoned = false;
+    public boolean owned = false; // da mua de tu
     // chieu da random cho skill 2,3,4 (-1 = chua mo)
     public final int[] moves = {-1, -1, -1};
 }

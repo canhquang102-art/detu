@@ -5,6 +5,7 @@ import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,6 +19,7 @@ import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
@@ -88,6 +90,7 @@ public final class DiscipleManager {
                 Mode m = Mode.parse(sec.getString(key + ".mode", "ditheo"));
                 pd.mode = m == null ? Mode.FOLLOW : m;
                 pd.summoned = sec.getBoolean(key + ".summoned", false);
+                pd.owned = sec.getBoolean(key + ".owned", false);
                 java.util.List<Integer> mv = sec.getIntegerList(key + ".moves");
                 for (int i = 0; i < 3 && i < mv.size(); i++) pd.moves[i] = mv.get(i);
                 data.put(id, pd);
@@ -109,6 +112,7 @@ public final class DiscipleManager {
             y.set(k + ".atk-level", pd.atkLevel);
             y.set(k + ".mode", pd.mode.name().toLowerCase());
             y.set(k + ".summoned", pd.summoned);
+            y.set(k + ".owned", pd.owned);
             y.set(k + ".moves", Arrays.stream(pd.moves).boxed().toList());
         }
         try {
@@ -168,6 +172,10 @@ public final class DiscipleManager {
 
     public boolean summon(Player p, boolean silent) {
         if (active.containsKey(p.getUniqueId())) return false;
+        if (!canUse(p)) {
+            if (!silent) msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử. Dùng &e/detu shop &cđể mua.");
+            return false;
+        }
         sweep(p.getUniqueId()); // xoa moi de tu bi bo lai cua nguoi nay
         PlayerData pd = data(p.getUniqueId());
         Disciple d = new Disciple(p.getUniqueId());
@@ -176,6 +184,81 @@ public final class DiscipleManager {
         pd.summoned = true;
         if (!silent) msg(p, "&a[Đệ tử] &fSư phụ ơi, con đây nè!");
         return true;
+    }
+
+
+    // ------------------------------------------------------------ shop
+
+    public boolean requirePurchase() {
+        return cfg().getBoolean("shop.require-purchase", true);
+    }
+
+    public String shopPermission() {
+        return cfg().getString("shop.permission", "detu.shop");
+    }
+
+    public double shopPrice() {
+        return cfg().getDouble("shop.price", 1_000_000);
+    }
+
+    public boolean canUse(Player p) {
+        if (!requirePurchase()) return true;
+        return data(p.getUniqueId()).owned || p.hasPermission("detu.admin");
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Object economy() {
+        try {
+            Class<?> ecoClass = Class.forName("net.milkbowl.vault.economy.Economy");
+            RegisteredServiceProvider rsp = Bukkit.getServicesManager().getRegistration((Class) ecoClass);
+            return rsp == null ? null : rsp.getProvider();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    public void buy(Player p) {
+        PlayerData pd = data(p.getUniqueId());
+        if (pd.owned) {
+            msg(p, "&e[Shop] Bạn đã sở hữu đệ tử rồi. Mỗi người chỉ mua được 1 con.");
+            return;
+        }
+        if (!p.hasPermission(shopPermission())) {
+            msg(p, cfg().getString("shop.need-rank-message", "&c[Shop] Bạn cần đạt rank Bạch Kim để mở shop đệ tử."));
+            return;
+        }
+        double price = shopPrice();
+        Object eco = economy();
+        if (eco == null) {
+            msg(p, "&c[Shop] Server chưa có plugin kinh tế (Vault). Báo admin.");
+            return;
+        }
+        try {
+            Class<?> ecoClass = Class.forName("net.milkbowl.vault.economy.Economy");
+            double bal = ((Number) ecoClass.getMethod("getBalance", OfflinePlayer.class).invoke(eco, p)).doubleValue();
+            if (bal < price) {
+                msg(p, "&c[Shop] Không đủ tiền. Cần &e" + Util.fmt((long) price) + "&c, bạn có &e" + Util.fmt((long) bal) + "&c.");
+                return;
+            }
+            Object resp = ecoClass.getMethod("withdrawPlayer", OfflinePlayer.class, double.class).invoke(eco, p, price);
+            boolean ok = (Boolean) resp.getClass().getMethod("transactionSuccess").invoke(resp);
+            if (!ok) {
+                msg(p, "&c[Shop] Giao dịch thất bại, chưa bị trừ tiền.");
+                return;
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Loi khi tru tien: " + ex);
+            msg(p, "&c[Shop] Lỗi giao dịch, báo admin.");
+            return;
+        }
+        pd.owned = true;
+        saveData();
+        msg(p, "&a[Shop] Mua đệ tử thành công! Dùng &e/detu goi &ađể gọi đệ tử.");
+    }
+
+    public void giveOwnership(Player p) {
+        data(p.getUniqueId()).owned = true;
+        saveData();
     }
 
     // ------------------------------------------------------------ chet / doi the gioi / don rac

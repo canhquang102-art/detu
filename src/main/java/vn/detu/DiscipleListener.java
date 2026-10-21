@@ -94,7 +94,8 @@ public final class DiscipleListener implements Listener {
         Long last = lastOpen.get(p.getUniqueId());
         if (last != null && now - last < 250) return;
         lastOpen.put(p.getUniqueId(), now);
-        DiscipleMenu.open(m, p);
+        if (m.canUse(p)) DiscipleMenu.open(m, p);
+        else ShopMenu.open(m, p);
     }
 
     @EventHandler
@@ -124,7 +125,21 @@ public final class DiscipleListener implements Listener {
     }
 
     @EventHandler
+    public void onShopClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof ShopMenu)) return;
+        e.setCancelled(true);
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getClickedInventory() == null || e.getClickedInventory() != e.getInventory()) return;
+        if (e.getSlot() == ShopMenu.SLOT_BUY) {
+            m.buy(p);
+            ShopMenu.open(m, p);
+        }
+    }
+
+    @EventHandler
     public void onDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() instanceof DiscipleMenu) e.setCancelled(true);
+        if (e.getInventory().getHolder() instanceof DiscipleMenu || e.getInventory().getHolder() instanceof ShopMenu) {
+            e.setCancelled(true);
+        }
     }
 }

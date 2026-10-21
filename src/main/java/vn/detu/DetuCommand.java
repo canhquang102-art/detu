@@ -18,6 +18,11 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         this.m = m;
     }
 
+    private void openMain(Player p) {
+        if (m.canUse(p)) DiscipleMenu.open(m, p);
+        else ShopMenu.open(m, p);
+    }
+
     @Override
     public boolean onCommand(CommandSender s, Command c, String label, String[] a) {
         String name = c.getName().toLowerCase();
@@ -25,6 +30,10 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         if (name.equals("ditheo") || name.equals("baove") || name.equals("tancong")) {
             if (!(s instanceof Player p)) {
                 s.sendMessage("Chi nguoi choi moi dung duoc lenh nay.");
+                return true;
+            }
+            if (!m.canUse(p)) {
+                m.msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử. Dùng &e/detu shop &cđể mua.");
                 return true;
             }
             m.setMode(p, Mode.parse(name));
@@ -36,14 +45,15 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                 s.sendMessage("Chi nguoi choi moi dung duoc lenh nay.");
                 return true;
             }
-            DiscipleMenu.open(m, p);
+            openMain(p);
             return true;
         }
 
         switch (a[0].toLowerCase()) {
             case "goi" -> {
                 if (s instanceof Player p) {
-                    if (!m.summon(p)) m.msg(p, "&e[Đệ tử] Đệ tử đã ở bên cạnh rồi.");
+                    if (m.isActive(p.getUniqueId())) m.msg(p, "&e[Đệ tử] Đệ tử đã ở bên cạnh rồi.");
+                    else m.summon(p);
                 }
             }
             case "cat" -> {
@@ -53,10 +63,35 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
             }
             case "mode" -> {
                 if (s instanceof Player p && a.length >= 2) {
+                    if (!m.canUse(p)) {
+                        m.msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử.");
+                        return true;
+                    }
                     Mode mode = Mode.parse(a[1]);
                     if (mode == null) m.msg(p, "&cDùng: /detu mode <tancong|baove|ditheo>");
                     else m.setMode(p, mode);
                 }
+            }
+            case "shop" -> {
+                if (s instanceof Player p) ShopMenu.open(m, p);
+            }
+            case "give" -> {
+                if (!s.hasPermission("detu.admin")) {
+                    s.sendMessage("Ban khong co quyen.");
+                    return true;
+                }
+                if (a.length < 2) {
+                    s.sendMessage("Dung: /detu give <nguoi_choi>");
+                    return true;
+                }
+                Player t = Bukkit.getPlayer(a[1]);
+                if (t == null) {
+                    s.sendMessage("Khong tim thay nguoi choi.");
+                    return true;
+                }
+                m.giveOwnership(t);
+                s.sendMessage("Da tang de tu cho " + t.getName() + ".");
+                m.msg(t, "&a[Đệ tử] Bạn đã được tặng đệ tử! Dùng &e/detu goi&a.");
             }
             case "addsm" -> {
                 if (!s.hasPermission("detu.admin")) {
@@ -88,7 +123,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                 s.sendMessage("Da nap lai config.");
             }
             default -> {
-                if (s instanceof Player p) DiscipleMenu.open(m, p);
+                if (s instanceof Player p) openMain(p);
             }
         }
         return true;
@@ -99,7 +134,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (!c.getName().equalsIgnoreCase("detu")) return out;
         if (a.length == 1) {
-            for (String x : new String[]{"goi", "cat", "mode", "addsm", "reload"}) {
+            for (String x : new String[]{"goi", "cat", "mode", "shop", "give", "addsm", "reload"}) {
                 if (x.startsWith(a[0].toLowerCase())) out.add(x);
             }
         } else if (a.length == 2 && a[0].equalsIgnoreCase("mode")) {
