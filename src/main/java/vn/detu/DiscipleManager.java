@@ -3,6 +3,7 @@ package vn.detu;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
@@ -41,6 +42,7 @@ public final class DiscipleManager {
         LivingEntity target;
         long lastAttack = 0;
         long buffUntil = 0;
+        long pvpUntil = 0;
         double buffFactor = 1.0;
         final long[] skillReady = new long[3]; // skill 2, 3, 4
 
@@ -57,6 +59,8 @@ public final class DiscipleManager {
     private BukkitTask task;
     private int tickCount = 0;
     private final NamespacedKey bodyKey;
+    private final Map<UUID, int[]> autoPending = new HashMap<>();
+    private final Map<UUID, Long> autoLast = new HashMap<>();
 
     public DiscipleManager(DeTuPlugin plugin) {
         this.plugin = plugin;
@@ -91,6 +95,7 @@ public final class DiscipleManager {
                 pd.mode = m == null ? Mode.FOLLOW : m;
                 pd.summoned = sec.getBoolean(key + ".summoned", false);
                 pd.owned = sec.getBoolean(key + ".owned", false);
+                pd.fused = sec.getBoolean(key + ".fused", false);
                 java.util.List<Integer> mv = sec.getIntegerList(key + ".moves");
                 for (int i = 0; i < 3 && i < mv.size(); i++) pd.moves[i] = mv.get(i);
                 data.put(id, pd);
@@ -113,6 +118,7 @@ public final class DiscipleManager {
             y.set(k + ".mode", pd.mode.name().toLowerCase());
             y.set(k + ".summoned", pd.summoned);
             y.set(k + ".owned", pd.owned);
+            y.set(k + ".fused", pd.fused);
             y.set(k + ".moves", Arrays.stream(pd.moves).boxed().toList());
         }
         try {
@@ -174,6 +180,10 @@ public final class DiscipleManager {
         if (active.containsKey(p.getUniqueId())) return false;
         if (!canUse(p)) {
             if (!silent) msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử. Dùng &e/detu shop &cđể mua.");
+            return false;
+        }
+        if (data(p.getUniqueId()).fused) {
+            if (!silent) msg(p, "&c[Đệ tử] Đang hợp thể với Sư phụ. Dùng &e/detu hopthe &cđể tách ra trước.");
             return false;
         }
         sweep(p.getUniqueId()); // xoa moi de tu bi bo lai cua nguoi nay
@@ -470,6 +480,7 @@ public final class DiscipleManager {
         pd.sm += amount;
         pd.potential += amount;
         ensureMoves(pd, owner);
+        autoUpgrade(owner, pd);
         if (notify) {
             owner.sendActionBar(Util.color("&b+" + Util.fmt(amount) + " SM &7(" + Util.fmt(pd.sm) + ")"));
         }
@@ -498,6 +509,84 @@ public final class DiscipleManager {
         return true;
     }
 
+    /** Dung tiem nang tu nang ngau nhien HP goc hoac suc danh goc cho den khi het tien. */
+    private void autoUpgrade(Player owner, PlayerData pd) {
+        double hpChance = cfg().getDouble("auto.hp-chance", 0.5);
+        int hpUp = 0;
+        int atkUp = 0;
+        for (int guard = 0; guard < 200; guard++) {
+            boolean pickHp = ThreadLocalRandom.current().nextDouble() < hpChance;
+            long cost = upgradeCost(pickHp, pd);
+            if (pd.potential < cost) {
+                pickHp = !pickHp;
+                cost = upgradeCost(pickHp, pd);
+                if (pd.potential < cost) break;
+            }
+            pd.potential -= cost;
+            if (pickHp) {
+                pd.hpLevel++;
+                hpUp++;
+            } else {
+                pd.atkLevel++;
+                atkUp++;
+            }
+        }
+        if (hpUp + atkUp == 0) return;
+
+        int[] pend = autoPending.computeIfAbsent(owner.getUniqueId(), k -> new int[2]);
+        pend[0] += hpUp;
+        pend[1] += atkUp;
+        long now = System.currentTimeMillis();
+        Long last = autoLast.get(owner.getUniqueId());
+        if (last == null || now - last >= 5000L) {
+            autoLast.put(owner.getUniqueId(), now);
+            msg(owner, "&d[Đệ tử] &fĐột phá chỉ số! &cHP gốc +" + pend[0] + " &7(cấp " + pd.hpLevel + ")"
+                    + " &f| &6Sức đánh gốc +" + pend[1] + " &7(cấp " + pd.atkLevel + ")");
+            pend[0] = 0;
+            pend[1] = 0;
+        }
+    }
+
+    // ------------------------------------------------------------ hop the
+
+    public boolean isFused(UUID id) {
+        return data(id).fused;
+    }
+
+    public boolean fusionAffectsPlayers() {
+        return cfg().getBoolean("fusion.affect-players", false);
+    }
+
+    public void toggleFuse(Player p) {
+        PlayerData pd = data(p.getUniqueId());
+        if (!canUse(p)) {
+            msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử.");
+            return;
+        }
+        if (!pd.fused) {
+            pd.fused = true;
+            Disciple d = active.remove(p.getUniqueId());
+            if (d != null) removeBody(d);
+            msg(p, "&d[Hợp thể] &fĐệ tử hợp thể với Sư phụ! Mỗi đòn đấm cộng thêm &e"
+                    + String.format("%.1f", damage(pd)) + " &fsát thương (bằng sức đánh của đệ tử).");
+        } else {
+            pd.fused = false;
+            msg(p, "&d[Hợp thể] &fĐã tách hợp thể.");
+            if (pd.summoned) summon(p, true);
+        }
+    }
+
+    /** Sat thuong cua su phu khi hop the: cong them (add) hoac thay bang (set) suc danh cua de tu. */
+    public double fusedDamage(Player p, double base) {
+        double bonus = damage(data(p.getUniqueId()));
+        String mode = cfg().getString("fusion.damage-mode", "add");
+        return mode.equalsIgnoreCase("set") ? Math.max(base, bonus) : base + bonus;
+    }
+
+    public void fusedHit(Player p) {
+        award(p, hitGain(data(p.getUniqueId())), false);
+    }
+
     public void setMode(Player p, Mode m) {
         PlayerData pd = data(p.getUniqueId());
         pd.mode = m;
@@ -508,11 +597,24 @@ public final class DiscipleManager {
 
     // ------------------------------------------------------------ events from listener
 
+    /** Su phu danh nguoi choi khac thi de tu dua theo danh nguoi do (ATTACK / PROTECT). */
+    public void ownerAttacked(Player owner, LivingEntity victim) {
+        if (!cfg().getBoolean("pvp.assist", true)) return;
+        if (!(victim instanceof Player vp) || vp.equals(owner)) return;
+        Disciple d = active.get(owner.getUniqueId());
+        if (d == null) return;
+        if (data(owner.getUniqueId()).mode == Mode.FOLLOW) return;
+        if (vp.getGameMode() == GameMode.CREATIVE || vp.getGameMode() == GameMode.SPECTATOR) return;
+        d.target = vp;
+        d.pvpUntil = System.currentTimeMillis() + (long) (cfg().getDouble("pvp.assist-seconds", 8.0) * 1000L);
+    }
+
     public void notifyAttacked(Player victim, LivingEntity attacker) {
         Disciple d = active.get(victim.getUniqueId());
         if (d == null) return;
         PlayerData pd = data(victim.getUniqueId());
         if (pd.mode == Mode.FOLLOW) return;
+        if (isBody(attacker.getUniqueId())) return;
         if (attacker instanceof Player) return;
         if (attacker.isValid() && !attacker.isDead()) d.target = attacker;
     }
@@ -555,6 +657,7 @@ public final class DiscipleManager {
                     || t.getLocation().distanceSquared(d.body.getLocation()) > 40 * 40;
             if (bad) d.target = null;
         }
+        if (d.target instanceof Player && now > d.pvpUntil) d.target = null;
         if (pd.mode == Mode.FOLLOW) d.target = null;
         if (d.target == null && pd.mode != Mode.FOLLOW && tickCount % 10 == 0) {
             d.target = findTarget(d, owner, pd);
@@ -679,6 +782,11 @@ public final class DiscipleManager {
     }
 
     private void hit(Disciple d, Player owner, LivingEntity t, double dmg) {
+        if (t instanceof Player) {
+            t.damage(dmg * cfg().getDouble("pvp.damage-multiplier", 1.0), d.body);
+            if (t.isDead()) d.target = null;
+            return; // danh nguoi choi khong cong SM (tranh farm bang nick phu)
+        }
         double maxHp = t.getMaxHealth();
         t.damage(dmg, d.body);
         long gained = hitGain(data(owner.getUniqueId()));
@@ -732,6 +840,10 @@ public final class DiscipleManager {
         long gained = 0;
         long perHit = hitGain(pd);
         for (LivingEntity v : victims) {
+            if (v instanceof Player) {
+                v.damage(dmg * cfg().getDouble("pvp.damage-multiplier", 1.0), d.body);
+                continue;
+            }
             double maxHp = v.getMaxHealth();
             v.damage(dmg, d.body);
             gained += perHit;

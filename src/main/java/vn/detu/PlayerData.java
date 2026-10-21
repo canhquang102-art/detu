@@ -8,6 +8,7 @@ public final class PlayerData {
     public Mode mode = Mode.FOLLOW;
     public boolean summoned = false;
     public boolean owned = false; // da mua de tu
+    public boolean fused = false; // dang hop the voi su phu
     // chieu da random cho skill 2,3,4 (-1 = chua mo)
     public final int[] moves = {-1, -1, -1};
 }

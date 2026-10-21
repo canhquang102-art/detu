@@ -18,9 +18,8 @@ public final class DiscipleMenu implements InventoryHolder {
     public static final int SLOT_FOLLOW = 12;
     public static final int SLOT_STATS = 13;
     public static final int SLOT_SKILLS = 14;
-    public static final int SLOT_HP = 15;
-    public static final int SLOT_ATK = 16;
-    public static final int SLOT_CAPSULE = 22;
+    public static final int SLOT_FUSE = 15;
+    public static final int SLOT_CAPSULE = 16;
 
     private final Inventory inv;
 
@@ -43,6 +42,10 @@ public final class DiscipleMenu implements InventoryHolder {
         stats.add("&7HP gốc: &aCấp " + pd.hpLevel + " &7[" + m.maxHp(pd) + " HP]");
         stats.add("&7Sức đánh gốc: &aCấp " + pd.atkLevel + " &7[" + String.format("%.1f", m.damage(pd)) + " SĐ]");
         stats.add("&7Tiềm năng hiện có: &b" + Util.fmt(pd.potential));
+        stats.add("&7Giá nâng tiếp: &cHP " + Util.fmt(m.upgradeCost(true, pd)) + " &7| &6SĐ " + Util.fmt(m.upgradeCost(false, pd)));
+        stats.add("");
+        stats.add("&dĐệ tử tự nâng ngẫu nhiên HP hoặc sức đánh");
+        stats.add("&dkhi đủ tiềm năng.");
         inv.setItem(SLOT_STATS, item(Material.BOOK, "&6Chỉ số đệ tử", stats, false));
 
         List<String> sk = new ArrayList<>();
@@ -57,14 +60,14 @@ public final class DiscipleMenu implements InventoryHolder {
         sk.add("&7Sở trường Xayda: &fAntomic / Kaioken / Biến Khỉ");
         inv.setItem(SLOT_SKILLS, item(Material.NETHER_STAR, "&dKỹ năng đệ tử", sk, false));
 
-        inv.setItem(SLOT_HP, item(Material.GOLDEN_APPLE, "&cNâng HP gốc",
-                List.of("&7Cấp hiện tại: &a" + pd.hpLevel,
-                        "&7Giá cấp tiếp: &e" + Util.fmt(m.upgradeCost(true, pd)) + " &7tiềm năng",
-                        "&7Đang có: &b" + Util.fmt(pd.potential), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
-        inv.setItem(SLOT_ATK, item(Material.DIAMOND_SWORD, "&6Nâng sức đánh gốc",
-                List.of("&7Cấp hiện tại: &a" + pd.atkLevel,
-                        "&7Giá cấp tiếp: &e" + Util.fmt(m.upgradeCost(false, pd)) + " &7tiềm năng",
-                        "&7Đang có: &b" + Util.fmt(pd.potential), "", "&eChuột trái: +1  &7| &eShift: +5"), false));
+        List<String> fuse = new ArrayList<>();
+        fuse.add("&7Thu hồi đệ tử, hợp thể với Sư phụ.");
+        fuse.add("&7Mỗi đòn đấm của bạn cộng thêm đúng");
+        fuse.add("&7bằng sức đánh của đệ tử: &e+" + String.format("%.1f", m.damage(pd)));
+        fuse.add("");
+        fuse.add("&7Trạng thái: " + (pd.fused ? "&aĐANG HỢP THỂ" : "&cChưa hợp thể"));
+        fuse.add("&eBấm để " + (pd.fused ? "tách ra" : "hợp thể"));
+        inv.setItem(SLOT_FUSE, item(Material.ENDER_EYE, "&dHỢP THỂ", fuse, pd.fused));
 
         boolean out = m.isActive(p.getUniqueId());
         inv.setItem(SLOT_CAPSULE, item(Material.BARREL, out ? "&cCất đệ tử vào Capsule" : "&aGọi đệ tử ra",

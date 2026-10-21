@@ -4,6 +4,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -67,8 +68,31 @@ public final class DiscipleListener implements Listener {
         if (attacker != null) m.notifyAttacked(victim, attacker);
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOwnerAttack(EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof Player victim)) return;
+        Player attacker = null;
+        if (e.getDamager() instanceof Player pl) {
+            attacker = pl;
+        } else if (e.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Player pl2) {
+            attacker = pl2;
+        }
+        if (attacker != null) m.ownerAttacked(attacker, victim);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onFusedHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player p)) return;
+        if (!m.isFused(p.getUniqueId())) return;
+        if (!(e.getEntity() instanceof LivingEntity target)) return;
+        if (target instanceof Player && !m.fusionAffectsPlayers()) return;
+        e.setDamage(m.fusedDamage(p, e.getDamage()));
+        if (!(target instanceof Player)) m.fusedHit(p);
+    }
+
     @EventHandler
     public void onDeath(EntityDeathEvent e) {
+        if (e.getEntity() instanceof Player) return; // giet nguoi choi khong cong SM
         Player killer = e.getEntity().getKiller();
         if (killer != null && m.isActive(killer.getUniqueId())) {
             m.ownerKill(killer, e.getEntity());
@@ -106,13 +130,11 @@ public final class DiscipleListener implements Listener {
         if (e.getClickedInventory() == null || e.getClickedInventory() != e.getInventory()) return;
 
         int slot = e.getSlot();
-        int amount = e.isShiftClick() ? 5 : 1;
         switch (slot) {
             case DiscipleMenu.SLOT_ATTACK -> m.setMode(p, Mode.ATTACK);
             case DiscipleMenu.SLOT_PROTECT -> m.setMode(p, Mode.PROTECT);
             case DiscipleMenu.SLOT_FOLLOW -> m.setMode(p, Mode.FOLLOW);
-            case DiscipleMenu.SLOT_HP -> m.upgrade(p, true, amount);
-            case DiscipleMenu.SLOT_ATK -> m.upgrade(p, false, amount);
+            case DiscipleMenu.SLOT_FUSE -> m.toggleFuse(p);
             case DiscipleMenu.SLOT_CAPSULE -> {
                 if (m.isActive(p.getUniqueId())) m.dismiss(p);
                 else m.summon(p);

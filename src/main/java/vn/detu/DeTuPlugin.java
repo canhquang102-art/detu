@@ -18,7 +18,7 @@ public final class DeTuPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new DiscipleListener(manager), this);
 
         DetuCommand cmd = new DetuCommand(manager);
-        for (String name : new String[]{"detu", "ditheo", "baove", "tancong"}) {
+        for (String name : new String[]{"detu", "ditheo", "baove", "tancong", "hopthe"}) {
             PluginCommand pc = getCommand(name);
             if (pc != null) {
                 pc.setExecutor(cmd);

@@ -27,6 +27,11 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender s, Command c, String label, String[] a) {
         String name = c.getName().toLowerCase();
 
+        if (name.equals("hopthe")) {
+            if (s instanceof Player p) m.toggleFuse(p);
+            return true;
+        }
+
         if (name.equals("ditheo") || name.equals("baove") || name.equals("tancong")) {
             if (!(s instanceof Player p)) {
                 s.sendMessage("Chi nguoi choi moi dung duoc lenh nay.");
@@ -71,6 +76,9 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                     if (mode == null) m.msg(p, "&cDùng: /detu mode <tancong|baove|ditheo>");
                     else m.setMode(p, mode);
                 }
+            }
+            case "hopthe" -> {
+                if (s instanceof Player p) m.toggleFuse(p);
             }
             case "shop" -> {
                 if (s instanceof Player p) ShopMenu.open(m, p);
@@ -134,7 +142,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (!c.getName().equalsIgnoreCase("detu")) return out;
         if (a.length == 1) {
-            for (String x : new String[]{"goi", "cat", "mode", "shop", "give", "addsm", "reload"}) {
+            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "shop", "give", "addsm", "reload"}) {
                 if (x.startsWith(a[0].toLowerCase())) out.add(x);
             }
         } else if (a.length == 2 && a[0].equalsIgnoreCase("mode")) {
