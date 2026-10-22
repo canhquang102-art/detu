@@ -20,6 +20,7 @@ public final class DiscipleMenu implements InventoryHolder {
     public static final int SLOT_SKILLS = 14;
     public static final int SLOT_FUSE = 15;
     public static final int SLOT_CAPSULE = 16;
+    public static final int SLOT_COSTUME = 22;
 
     private final Inventory inv;
 
@@ -42,7 +43,11 @@ public final class DiscipleMenu implements InventoryHolder {
         stats.add("&7HP gốc: &aCấp " + pd.hpLevel + " &7[" + m.maxHp(pd) + " HP]");
         stats.add("&7Sức đánh gốc: &aCấp " + pd.atkLevel + " &7[" + String.format("%.1f", m.damage(pd)) + " SĐ]");
         stats.add("&7Tiềm năng hiện có: &b" + Util.fmt(pd.potential));
-        stats.add("&7Giá nâng tiếp: &cHP " + Util.fmt(m.upgradeCost(true, pd)) + " &7| &6SĐ " + Util.fmt(m.upgradeCost(false, pd)));
+        DiscipleManager.Costume worn = m.costume(pd.costumeWorn);
+        stats.add("&7Cải trang: " + (worn == null ? "&8chưa mặc" : "&d" + worn.name + " &7(+" + String.format("%.0f", worn.percent) + "% tiềm năng/SM)"));
+        stats.add("&7Lần nâng tới: " + (pd.autoTarget == 1 ? "&cHP gốc" : pd.autoTarget == 2 ? "&6Sức đánh gốc" : "&fchưa bốc")
+                + (pd.autoTarget == 0 ? "" : " &7(cần &e" + Util.fmt(m.upgradeCost(pd.autoTarget == 1, pd)) + "&7)"));
+        stats.add("&7Tiềm năng cần cho lần nâng tới: &e" + Util.fmt(m.upgradeCost(true, pd)) + " &7(mỗi lần nâng ×" + String.format("%.2f", m.upgradeMultiplier()) + ")");
         stats.add("");
         stats.add("&dĐệ tử tự nâng ngẫu nhiên HP hoặc sức đánh");
         stats.add("&dkhi đủ tiềm năng.");
@@ -66,6 +71,7 @@ public final class DiscipleMenu implements InventoryHolder {
         fuse.add("&7Thu hồi đệ tử, hợp thể với Sư phụ.");
         fuse.add("&7Mỗi đòn đấm của bạn cộng thêm đúng");
         fuse.add("&7bằng sức đánh của đệ tử: &e+" + String.format("%.1f", m.damage(pd)));
+        fuse.add("&7Cộng máu tối đa bằng máu đệ tử: &c+" + m.fusionHpBonus(pd));
         fuse.add("");
         if (fusedNow) {
             fuse.add("&7Trạng thái: &aĐANG HỢP THỂ");
@@ -79,6 +85,9 @@ public final class DiscipleMenu implements InventoryHolder {
             fuse.add("&eBấm để hợp thể");
         }
         inv.setItem(SLOT_FUSE, item(Material.ENDER_EYE, "&dHỢP THỂ", fuse, fusedNow));
+
+        inv.setItem(SLOT_COSTUME, item(Material.LEATHER_CHESTPLATE, "&dCải trang đệ tử",
+                List.of("&7Mặc cải trang để tăng tiềm năng / SM", "&7đệ tử nhận được (30% / 45% / 60%).", "", "&eBấm để mở"), worn != null));
 
         boolean out = m.isActive(p.getUniqueId());
         inv.setItem(SLOT_CAPSULE, item(Material.BARREL, out ? "&cCất đệ tử vào Capsule" : "&aGọi đệ tử ra",

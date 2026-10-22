@@ -139,6 +139,10 @@ public final class DiscipleListener implements Listener {
                 if (m.isActive(p.getUniqueId())) m.dismiss(p);
                 else m.summon(p);
             }
+            case DiscipleMenu.SLOT_COSTUME -> {
+                CostumeMenu.open(m, p);
+                return;
+            }
             default -> {
                 return;
             }
@@ -159,8 +163,26 @@ public final class DiscipleListener implements Listener {
     }
 
     @EventHandler
+    public void onCostumeClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof CostumeMenu cm)) return;
+        e.setCancelled(true);
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getClickedInventory() == null || e.getClickedInventory() != e.getInventory()) return;
+        int slot = e.getSlot();
+        if (slot == CostumeMenu.SLOT_BACK) {
+            DiscipleMenu.open(m, p);
+            return;
+        }
+        String id = cm.idAt(slot);
+        if (id == null) return;
+        m.costumeAction(p, id);
+        CostumeMenu.open(m, p);
+    }
+
+    @EventHandler
     public void onDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() instanceof DiscipleMenu || e.getInventory().getHolder() instanceof ShopMenu) {
+        if (e.getInventory().getHolder() instanceof DiscipleMenu || e.getInventory().getHolder() instanceof ShopMenu
+                || e.getInventory().getHolder() instanceof CostumeMenu) {
             e.setCancelled(true);
         }
     }

@@ -97,6 +97,29 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                 m.resetFusionCooldown(t);
                 s.sendMessage("Da xoa thoi gian hoi hop the cua " + t.getName() + ".");
             }
+            case "caitrang" -> {
+                if (s instanceof Player p) {
+                    if (!m.canUse(p)) m.msg(p, "&c[Cải trang] Bạn chưa sở hữu đệ tử.");
+                    else CostumeMenu.open(m, p);
+                }
+            }
+            case "givecostume" -> {
+                if (!s.hasPermission("detu.admin")) {
+                    s.sendMessage("Ban khong co quyen.");
+                    return true;
+                }
+                if (a.length < 3) {
+                    s.sendMessage("Dung: /detu givecostume <nguoi_choi> <id: trang1|trang2|trang3>");
+                    return true;
+                }
+                Player t = Bukkit.getPlayer(a[1]);
+                if (t == null || m.costume(a[2]) == null) {
+                    s.sendMessage("Khong tim thay nguoi choi hoac cai trang.");
+                    return true;
+                }
+                m.giveCostume(t, a[2]);
+                s.sendMessage("Da tang cai trang " + a[2] + " cho " + t.getName() + ".");
+            }
             case "shop" -> {
                 if (s instanceof Player p) ShopMenu.open(m, p);
             }
@@ -133,7 +156,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 try {
-                    m.award(t, Long.parseLong(a[2]), true);
+                    m.awardRaw(t, Long.parseLong(a[2]), true);
                     s.sendMessage("Da cong SM.");
                 } catch (NumberFormatException e) {
                     s.sendMessage("So khong hop le.");
@@ -159,7 +182,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (!c.getName().equalsIgnoreCase("detu")) return out;
         if (a.length == 1) {
-            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "resetfuse", "shop", "give", "addsm", "reload"}) {
+            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "caitrang", "givecostume", "resetfuse", "shop", "give", "addsm", "reload"}) {
                 if (x.startsWith(a[0].toLowerCase())) out.add(x);
             }
         } else if (a.length == 2 && a[0].equalsIgnoreCase("mode")) {
