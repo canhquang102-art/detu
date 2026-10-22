@@ -9,6 +9,8 @@ public final class PlayerData {
     public boolean summoned = false;
     public boolean owned = false; // da mua de tu
     public boolean fused = false; // dang hop the voi su phu
+    public long fuseUntil = 0;         // thoi diem (ms) het hop the
+    public long fuseCooldownUntil = 0; // thoi diem (ms) duoc hop the lai
     // chieu da random cho skill 2,3,4 (-1 = chua mo)
     public final int[] moves = {-1, -1, -1};
 }

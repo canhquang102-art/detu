@@ -80,6 +80,23 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
             case "hopthe" -> {
                 if (s instanceof Player p) m.toggleFuse(p);
             }
+            case "resetfuse" -> {
+                if (!s.hasPermission("detu.admin")) {
+                    s.sendMessage("Ban khong co quyen.");
+                    return true;
+                }
+                if (a.length < 2) {
+                    s.sendMessage("Dung: /detu resetfuse <nguoi_choi>");
+                    return true;
+                }
+                Player t = Bukkit.getPlayer(a[1]);
+                if (t == null) {
+                    s.sendMessage("Khong tim thay nguoi choi.");
+                    return true;
+                }
+                m.resetFusionCooldown(t);
+                s.sendMessage("Da xoa thoi gian hoi hop the cua " + t.getName() + ".");
+            }
             case "shop" -> {
                 if (s instanceof Player p) ShopMenu.open(m, p);
             }
@@ -142,7 +159,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (!c.getName().equalsIgnoreCase("detu")) return out;
         if (a.length == 1) {
-            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "shop", "give", "addsm", "reload"}) {
+            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "resetfuse", "shop", "give", "addsm", "reload"}) {
                 if (x.startsWith(a[0].toLowerCase())) out.add(x);
             }
         } else if (a.length == 2 && a[0].equalsIgnoreCase("mode")) {

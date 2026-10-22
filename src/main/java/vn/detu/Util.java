@@ -24,6 +24,11 @@ public final class Util {
         return out;
     }
 
+    public static String fmtTime(long ms) {
+        long s = Math.max(0L, (ms + 999L) / 1000L);
+        return String.format(Locale.ROOT, "%d:%02d", s / 60, s % 60);
+    }
+
     public static String fmt(long v) {
         double d = v;
         if (v >= 1_000_000_000_000L) return trim(d / 1e12) + "T";

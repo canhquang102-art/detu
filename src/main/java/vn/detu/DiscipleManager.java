@@ -59,6 +59,7 @@ public final class DiscipleManager {
     private BukkitTask task;
     private int tickCount = 0;
     private final NamespacedKey bodyKey;
+    private final Map<UUID, Long> gainUntil = new HashMap<>();
     private final Map<UUID, int[]> autoPending = new HashMap<>();
     private final Map<UUID, Long> autoLast = new HashMap<>();
 
@@ -96,6 +97,8 @@ public final class DiscipleManager {
                 pd.summoned = sec.getBoolean(key + ".summoned", false);
                 pd.owned = sec.getBoolean(key + ".owned", false);
                 pd.fused = sec.getBoolean(key + ".fused", false);
+                pd.fuseUntil = sec.getLong(key + ".fuse-until", 0);
+                pd.fuseCooldownUntil = sec.getLong(key + ".fuse-cooldown-until", 0);
                 java.util.List<Integer> mv = sec.getIntegerList(key + ".moves");
                 for (int i = 0; i < 3 && i < mv.size(); i++) pd.moves[i] = mv.get(i);
                 data.put(id, pd);
@@ -119,6 +122,8 @@ public final class DiscipleManager {
             y.set(k + ".summoned", pd.summoned);
             y.set(k + ".owned", pd.owned);
             y.set(k + ".fused", pd.fused);
+            y.set(k + ".fuse-until", pd.fuseUntil);
+            y.set(k + ".fuse-cooldown-until", pd.fuseCooldownUntil);
             y.set(k + ".moves", Arrays.stream(pd.moves).boxed().toList());
         }
         try {
@@ -476,14 +481,20 @@ public final class DiscipleManager {
     public void award(Player owner, long amount, boolean notify) {
         if (amount <= 0) return;
         PlayerData pd = data(owner.getUniqueId());
-        long before = pd.sm;
         pd.sm += amount;
         pd.potential += amount;
         ensureMoves(pd, owner);
         autoUpgrade(owner, pd);
         if (notify) {
-            owner.sendActionBar(Util.color("&b+" + Util.fmt(amount) + " SM &7(" + Util.fmt(pd.sm) + ")"));
+            showGain(owner, "&b+" + Util.fmt(amount) + " SM &7(" + Util.fmt(pd.sm) + ")");
         }
+    }
+
+    /** Hien dong +SM tren action bar va giu khoang 3 giay (dong ho hop the nhuong cho trong luc do). */
+    private void showGain(Player p, String text) {
+        long ms = (long) (cfg().getDouble("display.gain-seconds", 3.0) * 1000L);
+        gainUntil.put(p.getUniqueId(), System.currentTimeMillis() + ms);
+        p.sendActionBar(Util.color(text));
     }
 
     public boolean upgrade(Player p, boolean hp, int amount) {
@@ -550,7 +561,68 @@ public final class DiscipleManager {
     // ------------------------------------------------------------ hop the
 
     public boolean isFused(UUID id) {
-        return data(id).fused;
+        PlayerData pd = data(id);
+        return pd.fused && System.currentTimeMillis() < pd.fuseUntil;
+    }
+
+    public long fuseRemaining(PlayerData pd) {
+        return pd.fused ? Math.max(0L, pd.fuseUntil - System.currentTimeMillis()) : 0L;
+    }
+
+    public long fuseCooldownRemaining(PlayerData pd) {
+        return Math.max(0L, pd.fuseCooldownUntil - System.currentTimeMillis());
+    }
+
+    private long fuseDurationMs() {
+        return (long) (cfg().getDouble("fusion.duration-seconds", 600) * 1000L);
+    }
+
+    private long fuseCooldownMs() {
+        return (long) (cfg().getDouble("fusion.cooldown-seconds", 600) * 1000L);
+    }
+
+    /** Het gio hop the thi tu dong tach va bat dau thoi gian hoi. */
+    private void checkFusion() {
+        long now = System.currentTimeMillis();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            PlayerData pd = data.get(p.getUniqueId());
+            if (pd == null || !pd.fused) continue;
+            if (now >= pd.fuseUntil) {
+                endFusion(p, true);
+            } else {
+                Long gu = gainUntil.get(p.getUniqueId());
+                if (gu == null || now >= gu) {
+                    p.sendActionBar(Util.color("&dHợp thể còn &f" + Util.fmtTime(pd.fuseUntil - now)));
+                }
+            }
+        }
+    }
+
+    private void endFusion(Player p, boolean timeout) {
+        PlayerData pd = data(p.getUniqueId());
+        pd.fused = false;
+        pd.fuseUntil = 0;
+        pd.fuseCooldownUntil = System.currentTimeMillis() + fuseCooldownMs();
+        msg(p, "&d[Hợp thể] &f" + (timeout ? "Đã hết thời gian hợp thể." : "Đã tách hợp thể.")
+                + " Phải đợi &e" + Util.fmtTime(fuseCooldownMs()) + " &fmới hợp thể lại được.");
+        if (pd.summoned) summon(p, true);
+    }
+
+    /** Moi ~1 giay: chop dien + tia sang quanh nguoi dang hop the. */
+    private void fusionEffects() {
+        boolean lightning = cfg().getBoolean("fusion.lightning-effect", false);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!isFused(p.getUniqueId())) continue;
+            World w = p.getWorld();
+            Location c = p.getLocation().add(0, 1.0, 0);
+            w.spawnParticle(Particle.ELECTRIC_SPARK, c, 60, 0.6, 0.9, 0.6, 0.35);
+            w.spawnParticle(Particle.END_ROD, c, 25, 0.5, 0.9, 0.5, 0.08);
+            if (lightning) w.strikeLightningEffect(p.getLocation());
+        }
+    }
+
+    public void resetFusionCooldown(Player p) {
+        data(p.getUniqueId()).fuseCooldownUntil = 0;
     }
 
     public boolean fusionAffectsPlayers() {
@@ -563,17 +635,21 @@ public final class DiscipleManager {
             msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử.");
             return;
         }
-        if (!pd.fused) {
-            pd.fused = true;
-            Disciple d = active.remove(p.getUniqueId());
-            if (d != null) removeBody(d);
-            msg(p, "&d[Hợp thể] &fĐệ tử hợp thể với Sư phụ! Mỗi đòn đấm cộng thêm &e"
-                    + String.format("%.1f", damage(pd)) + " &fsát thương (bằng sức đánh của đệ tử).");
-        } else {
-            pd.fused = false;
-            msg(p, "&d[Hợp thể] &fĐã tách hợp thể.");
-            if (pd.summoned) summon(p, true);
+        if (pd.fused) {
+            endFusion(p, false);
+            return;
         }
+        long cd = fuseCooldownRemaining(pd);
+        if (cd > 0) {
+            msg(p, "&c[Hợp thể] Đang hồi chiêu, còn &e" + Util.fmtTime(cd) + " &cnữa mới hợp thể được.");
+            return;
+        }
+        pd.fused = true;
+        pd.fuseUntil = System.currentTimeMillis() + fuseDurationMs();
+        Disciple d = active.remove(p.getUniqueId());
+        if (d != null) removeBody(d);
+        msg(p, "&d[Hợp thể] &fĐệ tử hợp thể với Sư phụ trong &e" + Util.fmtTime(fuseDurationMs())
+                + "&f! Mỗi đòn đấm cộng thêm &e" + String.format("%.1f", damage(pd)) + " &fsát thương (bằng sức đánh của đệ tử).");
     }
 
     /** Sat thuong cua su phu khi hop the: cong them (add) hoac thay bang (set) suc danh cua de tu. */
@@ -643,6 +719,9 @@ public final class DiscipleManager {
             }
             tickDisciple(d, owner);
         }
+        if (tickCount % 20 == 0) checkFusion();
+        int flashTicks = Math.max(1, (int) (cfg().getDouble("fusion.flash-seconds", 1.0) * 20));
+        if (tickCount % flashTicks == 0) fusionEffects();
         if (tickCount % 200 == 0) sweep(null);
         if (tickCount % 6000 == 0) saveData();
     }
@@ -795,7 +874,7 @@ public final class DiscipleManager {
             d.target = null;
             award(owner, gained, true);
         } else {
-            award(owner, gained, false);
+            award(owner, gained, true);
         }
     }
 

@@ -60,14 +60,25 @@ public final class DiscipleMenu implements InventoryHolder {
         sk.add("&7Sở trường Xayda: &fAntomic / Kaioken / Biến Khỉ");
         inv.setItem(SLOT_SKILLS, item(Material.NETHER_STAR, "&dKỹ năng đệ tử", sk, false));
 
+        boolean fusedNow = m.isFused(p.getUniqueId());
+        long cdLeft = m.fuseCooldownRemaining(pd);
         List<String> fuse = new ArrayList<>();
         fuse.add("&7Thu hồi đệ tử, hợp thể với Sư phụ.");
         fuse.add("&7Mỗi đòn đấm của bạn cộng thêm đúng");
         fuse.add("&7bằng sức đánh của đệ tử: &e+" + String.format("%.1f", m.damage(pd)));
         fuse.add("");
-        fuse.add("&7Trạng thái: " + (pd.fused ? "&aĐANG HỢP THỂ" : "&cChưa hợp thể"));
-        fuse.add("&eBấm để " + (pd.fused ? "tách ra" : "hợp thể"));
-        inv.setItem(SLOT_FUSE, item(Material.ENDER_EYE, "&dHỢP THỂ", fuse, pd.fused));
+        if (fusedNow) {
+            fuse.add("&7Trạng thái: &aĐANG HỢP THỂ");
+            fuse.add("&7Còn lại: &f" + Util.fmtTime(m.fuseRemaining(pd)));
+            fuse.add("&eBấm để tách ra (vẫn phải đợi hồi chiêu)");
+        } else if (cdLeft > 0) {
+            fuse.add("&7Trạng thái: &cĐang hồi chiêu");
+            fuse.add("&7Còn lại: &f" + Util.fmtTime(cdLeft));
+        } else {
+            fuse.add("&7Trạng thái: &aSẵn sàng");
+            fuse.add("&eBấm để hợp thể");
+        }
+        inv.setItem(SLOT_FUSE, item(Material.ENDER_EYE, "&dHỢP THỂ", fuse, fusedNow));
 
         boolean out = m.isActive(p.getUniqueId());
         inv.setItem(SLOT_CAPSULE, item(Material.BARREL, out ? "&cCất đệ tử vào Capsule" : "&aGọi đệ tử ra",
