@@ -77,9 +77,16 @@ shop:
 fusion:
   damage-mode: add
   affect-players: false
+  duration-seconds: 600  # hop the keo dai 10 phut
+  cooldown-seconds: 600  # het hop the phai doi 10 phut moi hop the lai
+  flash-seconds: 1.0     # chop dien moi bao nhieu giay
+  lightning-effect: false # true = them tia set (co tieng set), false = chi hat tia sang
 
 # De tu phu danh khi su phu danh nguoi choi khac (chi o che do TAN CONG / BAO VE)
 pvp:
   assist: true
   assist-seconds: 8       # sau bay nhieu giay su phu khong danh nua thi de tu thoi
   damage-multiplier: 1.0  # nhan sat thuong cua de tu len nguoi choi
+
+display:
+  gain-seconds: 3.0  # dong +SM khi de tu dam hien tren action bar bao nhieu giay
