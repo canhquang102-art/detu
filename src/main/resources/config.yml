@@ -61,10 +61,8 @@ skills:
 # Nang HP / suc danh goc bang TIEM NANG (tiem nang cong them moi khi de tu danh / giet quai, bang luong SM nhan duoc)
 # Gia moi cap = base + growth x cap hien tai
 upgrade:
-  hp-base-cost: 100
-  hp-growth: 10
-  atk-base-cost: 500
-  atk-growth: 50
+  base-cost: 100         # tiem nang can cho lan nang dau tien (HP hoac suc danh)
+  cost-multiplier: 1.25  # sau moi lan nang, tiem nang can cho lan ke tiep nhan len 1.25
 
 # Shop ban de tu: phai co quyen "detu.shop" (cap cho rank Bach Kim trong plugin rank cua ban)
 shop:
@@ -79,6 +77,8 @@ fusion:
   affect-players: false
   duration-seconds: 600  # hop the keo dai 10 phut
   cooldown-seconds: 600  # het hop the phai doi 10 phut moi hop the lai
+  add-hp: true            # khi hop the, cong toi da mau cua de tu cho su phu
+  hp-multiplier: 1.0      # he so nhan mau cong them
   flash-seconds: 1.0     # chop dien moi bao nhieu giay
   lightning-effect: false # true = them tia set (co tieng set), false = chi hat tia sang
 
@@ -90,3 +90,28 @@ pvp:
 
 display:
   gain-seconds: 3.0  # dong +SM khi de tu dam hien tren action bar bao nhieu giay
+
+# Cai trang cho de tu: tang % tiem nang / SM nhan duoc. Mac 1 cai tai mot thoi diem.
+# skin-value / skin-signature: de trong = giu skin mac dinh, dien ma mineskin neu muon doi hinh.
+costumes:
+  trang1:
+    name: "Cải trang Chiến Binh"
+    bonus-percent: 30
+    price: 1000000
+    material: LEATHER_CHESTPLATE
+    skin-value: ""
+    skin-signature: ""
+  trang2:
+    name: "Cải trang Siêu Chiến Binh"
+    bonus-percent: 45
+    price: 5000000
+    material: DIAMOND_CHESTPLATE
+    skin-value: ""
+    skin-signature: ""
+  trang3:
+    name: "Cải trang Thần Chiến"
+    bonus-percent: 60
+    price: 20000000
+    material: NETHERITE_CHESTPLATE
+    skin-value: ""
+    skin-signature: ""
