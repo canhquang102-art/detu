@@ -91,27 +91,32 @@ pvp:
 display:
   gain-seconds: 3.0  # dong +SM khi de tu dam hien tren action bar bao nhieu giay
 
-# Cai trang cho de tu: tang % tiem nang / SM nhan duoc. Mac 1 cai tai mot thoi diem.
+# Cai trang cho de tu: NHAN tiem nang / SM nhan duoc (vd x1.5: danh ra 1000 thi nhan 1500). Mac 1 cai tai mot thoi diem.
 # skin-value / skin-signature: de trong = giu skin mac dinh, dien ma mineskin neu muon doi hinh.
 costumes:
   trang1:
     name: "Cải trang Chiến Binh"
-    bonus-percent: 30
+    multiplier: 1.5
     price: 1000000
     material: LEATHER_CHESTPLATE
     skin-value: ""
     skin-signature: ""
   trang2:
     name: "Cải trang Siêu Chiến Binh"
-    bonus-percent: 45
+    multiplier: 2.0
     price: 5000000
     material: DIAMOND_CHESTPLATE
     skin-value: ""
     skin-signature: ""
   trang3:
     name: "Cải trang Thần Chiến"
-    bonus-percent: 60
+    multiplier: 3.5
     price: 20000000
     material: NETHERITE_CHESTPLATE
     skin-value: ""
     skin-signature: ""
+
+# Doi de tu: tra tien, de tu cu mat, HP / suc danh ve cap 0, SM ve muc khoi dau
+reroll:
+  price: 4000000
+  start-sm: 5000
