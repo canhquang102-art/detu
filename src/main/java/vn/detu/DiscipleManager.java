@@ -341,16 +341,16 @@ public final class DiscipleManager {
     public static final class Costume {
         public final String id;
         public final String name;
-        public final double percent;
+        public final double multiplier;
         public final double price;
         public final String material;
         public final String skinValue;
         public final String skinSig;
 
-        Costume(String id, String name, double percent, double price, String material, String skinValue, String skinSig) {
+        Costume(String id, String name, double multiplier, double price, String material, String skinValue, String skinSig) {
             this.id = id;
             this.name = name;
-            this.percent = percent;
+            this.multiplier = multiplier;
             this.price = price;
             this.material = material;
             this.skinValue = skinValue;
@@ -365,14 +365,14 @@ public final class DiscipleManager {
             for (String id : sec.getKeys(false)) {
                 ConfigurationSection c = sec.getConfigurationSection(id);
                 if (c == null) continue;
-                out.add(new Costume(id, c.getString("name", id), c.getDouble("bonus-percent", 0), c.getDouble("price", 0),
+                out.add(new Costume(id, c.getString("name", id), (c.contains("multiplier") ? c.getDouble("multiplier", 1.0) : 1.0 + c.getDouble("bonus-percent", 0) / 100.0), c.getDouble("price", 0),
                         c.getString("material", "LEATHER_CHESTPLATE"), c.getString("skin-value", ""), c.getString("skin-signature", "")));
             }
         }
         if (out.isEmpty()) {
-            out.add(new Costume("trang1", "Cải trang Chiến Binh", 30, 1_000_000, "LEATHER_CHESTPLATE", "", ""));
-            out.add(new Costume("trang2", "Cải trang Siêu Chiến Binh", 45, 5_000_000, "DIAMOND_CHESTPLATE", "", ""));
-            out.add(new Costume("trang3", "Cải trang Thần Chiến", 60, 20_000_000, "NETHERITE_CHESTPLATE", "", ""));
+            out.add(new Costume("trang1", "Cải trang Chiến Binh", 1.5, 1_000_000, "LEATHER_CHESTPLATE", "", ""));
+            out.add(new Costume("trang2", "Cải trang Siêu Chiến Binh", 2.0, 5_000_000, "DIAMOND_CHESTPLATE", "", ""));
+            out.add(new Costume("trang3", "Cải trang Thần Chiến", 3.5, 20_000_000, "NETHERITE_CHESTPLATE", "", ""));
         }
         return out;
     }
@@ -385,9 +385,9 @@ public final class DiscipleManager {
         return null;
     }
 
-    public double costumeBonusPercent(PlayerData pd) {
+    public double costumeMultiplier(PlayerData pd) {
         Costume c = costume(pd.costumeWorn);
-        return c == null ? 0.0 : c.percent;
+        return c == null ? 1.0 : c.multiplier;
     }
 
     private boolean charge(Player p, double price) {
@@ -438,9 +438,48 @@ public final class DiscipleManager {
             msg(p, "&e[Cải trang] Đã cởi &f" + c.name + "&e.");
         } else {
             pd.costumeWorn = id;
-            msg(p, "&a[Cải trang] Đang mặc &e" + c.name + "&a: tăng &e" + String.format("%.0f", c.percent) + "% &atiềm năng / SM nhận được.");
+            msg(p, "&a[Cải trang] Đang mặc &e" + c.name + "&a: tiềm năng / SM nhận được nhân &e" + Util.fmtMult(c.multiplier) + "&a.");
         }
         refreshBody(p);
+    }
+
+    // ------------------------------------------------------------ doi de tu
+
+    public double rerollPrice() {
+        return cfg().getDouble("reroll.price", 4_000_000);
+    }
+
+    public long rerollStartSm() {
+        return cfg().getLong("reroll.start-sm", 5000);
+    }
+
+    /** Doi de tu: tra tien, de tu cu mat, chi so HP / suc danh ve 0, SM ve muc khoi dau. Cai trang da mua duoc giu. */
+    public void reroll(Player p) {
+        PlayerData pd = data(p.getUniqueId());
+        if (!canUse(p)) {
+            msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử.");
+            return;
+        }
+        if (pd.fused) {
+            msg(p, "&c[Đệ tử] Đang hợp thể, hãy tách hợp thể trước khi đổi đệ tử.");
+            return;
+        }
+        if (!charge(p, rerollPrice())) return;
+
+        pd.sm = rerollStartSm();
+        pd.hpLevel = 0;
+        pd.atkLevel = 0;
+        pd.potential = 0;
+        pd.nextCost = 0;
+        pd.autoTarget = 0;
+        Arrays.fill(pd.moves, -1);
+        ensureMoves(pd, p);
+
+        Disciple d = active.remove(p.getUniqueId());
+        if (d != null) removeBody(d);
+        saveData();
+        msg(p, "&a[Đệ tử] Đã đổi đệ tử mới! Đệ tử cũ đã mất, HP và sức đánh về cấp 0, SM về &e" + Util.fmt(pd.sm) + "&a.");
+        if (pd.summoned) summon(p, false);
     }
 
     public void giveCostume(Player p, String id) {
@@ -680,8 +719,8 @@ public final class DiscipleManager {
         if (amount <= 0) return;
         PlayerData pd = data(owner.getUniqueId());
         if (bonus && pd.costumeWorn != null) {
-            double pct = costumeBonusPercent(pd);
-            if (pct > 0) amount = Math.round(amount * (1.0 + pct / 100.0));
+            double mult = costumeMultiplier(pd);
+            if (mult > 1.0) amount = Math.round(amount * mult);
         }
         pd.sm += amount;
         pd.potential += amount;

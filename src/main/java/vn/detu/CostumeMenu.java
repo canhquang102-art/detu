@@ -35,7 +35,7 @@ public final class CostumeMenu implements InventoryHolder {
             boolean worn = c.id.equals(pd.costumeWorn);
 
             List<String> lore = new ArrayList<>();
-            lore.add("&7Tăng &e+" + String.format("%.0f", c.percent) + "% &7tiềm năng / SM nhận được.");
+            lore.add("&7Tiềm năng / SM nhận được nhân &e" + Util.fmtMult(c.multiplier) + "&7.");
             lore.add("");
             if (worn) {
                 lore.add("&aĐang mặc");

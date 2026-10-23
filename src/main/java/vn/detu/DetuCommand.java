@@ -120,6 +120,12 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
                 m.giveCostume(t, a[2]);
                 s.sendMessage("Da tang cai trang " + a[2] + " cho " + t.getName() + ".");
             }
+            case "doi" -> {
+                if (s instanceof Player p) {
+                    if (!m.canUse(p)) m.msg(p, "&c[Đệ tử] Bạn chưa sở hữu đệ tử.");
+                    else ConfirmMenu.open(m, p);
+                }
+            }
             case "shop" -> {
                 if (s instanceof Player p) ShopMenu.open(m, p);
             }
@@ -182,7 +188,7 @@ public final class DetuCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (!c.getName().equalsIgnoreCase("detu")) return out;
         if (a.length == 1) {
-            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "caitrang", "givecostume", "resetfuse", "shop", "give", "addsm", "reload"}) {
+            for (String x : new String[]{"goi", "cat", "mode", "hopthe", "caitrang", "doi", "givecostume", "resetfuse", "shop", "give", "addsm", "reload"}) {
                 if (x.startsWith(a[0].toLowerCase())) out.add(x);
             }
         } else if (a.length == 2 && a[0].equalsIgnoreCase("mode")) {

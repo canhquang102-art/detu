@@ -21,6 +21,7 @@ public final class DiscipleMenu implements InventoryHolder {
     public static final int SLOT_FUSE = 15;
     public static final int SLOT_CAPSULE = 16;
     public static final int SLOT_COSTUME = 22;
+    public static final int SLOT_REROLL = 24;
 
     private final Inventory inv;
 
@@ -44,7 +45,7 @@ public final class DiscipleMenu implements InventoryHolder {
         stats.add("&7Sức đánh gốc: &aCấp " + pd.atkLevel + " &7[" + String.format("%.1f", m.damage(pd)) + " SĐ]");
         stats.add("&7Tiềm năng hiện có: &b" + Util.fmt(pd.potential));
         DiscipleManager.Costume worn = m.costume(pd.costumeWorn);
-        stats.add("&7Cải trang: " + (worn == null ? "&8chưa mặc" : "&d" + worn.name + " &7(+" + String.format("%.0f", worn.percent) + "% tiềm năng/SM)"));
+        stats.add("&7Cải trang: " + (worn == null ? "&8chưa mặc" : "&d" + worn.name + " &7(" + Util.fmtMult(worn.multiplier) + " tiềm năng/SM)"));
         stats.add("&7Lần nâng tới: " + (pd.autoTarget == 1 ? "&cHP gốc" : pd.autoTarget == 2 ? "&6Sức đánh gốc" : "&fchưa bốc")
                 + (pd.autoTarget == 0 ? "" : " &7(cần &e" + Util.fmt(m.upgradeCost(pd.autoTarget == 1, pd)) + "&7)"));
         stats.add("&7Tiềm năng cần cho lần nâng tới: &e" + Util.fmt(m.upgradeCost(true, pd)) + " &7(mỗi lần nâng ×" + String.format("%.2f", m.upgradeMultiplier()) + ")");
@@ -87,7 +88,12 @@ public final class DiscipleMenu implements InventoryHolder {
         inv.setItem(SLOT_FUSE, item(Material.ENDER_EYE, "&dHỢP THỂ", fuse, fusedNow));
 
         inv.setItem(SLOT_COSTUME, item(Material.LEATHER_CHESTPLATE, "&dCải trang đệ tử",
-                List.of("&7Mặc cải trang để tăng tiềm năng / SM", "&7đệ tử nhận được (30% / 45% / 60%).", "", "&eBấm để mở"), worn != null));
+                List.of("&7Mặc cải trang để tăng tiềm năng / SM", "&7đệ tử nhận được (x1.5 / x2 / x3.5).", "", "&eBấm để mở"), worn != null));
+
+        inv.setItem(SLOT_REROLL, item(Material.ENDER_PEARL, "&6Đổi đệ tử",
+                List.of("&7Giá: &e" + Util.fmt((long) m.rerollPrice()),
+                        "&cĐệ tử cũ mất, HP và sức đánh về cấp 0,",
+                        "&cSM về " + Util.fmt(m.rerollStartSm()) + ".", "", "&eBấm để xem xác nhận"), false));
 
         boolean out = m.isActive(p.getUniqueId());
         inv.setItem(SLOT_CAPSULE, item(Material.BARREL, out ? "&cCất đệ tử vào Capsule" : "&aGọi đệ tử ra",

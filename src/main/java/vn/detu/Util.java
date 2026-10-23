@@ -24,6 +24,11 @@ public final class Util {
         return out;
     }
 
+    /** 1.5 -> "x1.5", 2.0 -> "x2" */
+    public static String fmtMult(double v) {
+        return "x" + trim(v);
+    }
+
     public static String fmtTime(long ms) {
         long s = Math.max(0L, (ms + 999L) / 1000L);
         return String.format(Locale.ROOT, "%d:%02d", s / 60, s % 60);

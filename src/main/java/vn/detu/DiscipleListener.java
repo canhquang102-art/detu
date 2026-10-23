@@ -143,6 +143,10 @@ public final class DiscipleListener implements Listener {
                 CostumeMenu.open(m, p);
                 return;
             }
+            case DiscipleMenu.SLOT_REROLL -> {
+                ConfirmMenu.open(m, p);
+                return;
+            }
             default -> {
                 return;
             }
@@ -159,6 +163,20 @@ public final class DiscipleListener implements Listener {
         if (e.getSlot() == ShopMenu.SLOT_BUY) {
             m.buy(p);
             ShopMenu.open(m, p);
+        }
+    }
+
+    @EventHandler
+    public void onConfirmClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof ConfirmMenu)) return;
+        e.setCancelled(true);
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getClickedInventory() == null || e.getClickedInventory() != e.getInventory()) return;
+        if (e.getSlot() == ConfirmMenu.SLOT_YES) {
+            m.reroll(p);
+            DiscipleMenu.open(m, p);
+        } else if (e.getSlot() == ConfirmMenu.SLOT_NO) {
+            DiscipleMenu.open(m, p);
         }
     }
 
@@ -182,7 +200,8 @@ public final class DiscipleListener implements Listener {
     @EventHandler
     public void onDrag(InventoryDragEvent e) {
         if (e.getInventory().getHolder() instanceof DiscipleMenu || e.getInventory().getHolder() instanceof ShopMenu
-                || e.getInventory().getHolder() instanceof CostumeMenu) {
+                || e.getInventory().getHolder() instanceof CostumeMenu
+                || e.getInventory().getHolder() instanceof ConfirmMenu) {
             e.setCancelled(true);
         }
     }
